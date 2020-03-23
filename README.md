@@ -5,7 +5,7 @@ Atualmente a SESAB (Secretaria de Saúde da Bahia) publica boletins e casos
 na seção de notícias do seu site: http://www.saude.ba.gov.br/noticias/.
 
 A ideia é coletar notícias que aparentam ser boletins ou casos e fazer a triagem
-de maneira colaborativa.
+de maneira colaborativa com o [Brasil.IO](https://brasil.io/dataset/covid19). Veja a _issue_ [aqui](https://github.com/turicas/covid19-br/issues/9).
 
 ### Executando local
 
