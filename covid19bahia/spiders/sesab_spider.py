@@ -9,13 +9,14 @@ class NewsSpider(scrapy.Spider):
     def parse(self, response):
         titles = response.css('div.detalhes-noticias h2 ::text').extract()
         urls = response.css('div.detalhes-noticias h2 a::attr(href)').extract()
-        published_at = response.css('div.detalhes-noticias p.data-hora ::text').extract()
+        dates = response.css('div.detalhes-noticias p.data-hora ::text').extract()
 
         for index, url in enumerate(urls):
+            date_obj = datetime.strptime(dates[index], "%d/%m/%Y %H:%M")
             news = {
-                "title": titles[index],
+                "date": date_obj.strftime('%Y-%m-%d'),
                 "url": urls[index],
-                "published_at": published_at[index],
+                "title": titles[index],
                 "crawled_at": datetime.now(),
             }
             yield response.follow(url, self.parse_page, meta={"news": news})
