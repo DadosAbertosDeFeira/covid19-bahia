@@ -3,10 +3,7 @@ import scrapy
 
 class NewsSpider(scrapy.Spider):
     name = "sesab_news"
-    start_urls = [
-        f"http://www.saude.ba.gov.br/noticias/page/{page}/"
-        for page in range(10)
-    ]
+    start_urls = ["http://www.saude.ba.gov.br/noticias"]
 
     def parse(self, response):
         titles = response.css('div.detalhes-noticias h2 ::text').extract()
@@ -24,6 +21,10 @@ class NewsSpider(scrapy.Spider):
                 "category_url": categories_url[index],
             }
             yield response.follow(url, self.parse_page, meta={"news": news})
+
+        next_page_url = response.css('li a.next::attr(href)').extract_first()
+        if next_page_url:
+            yield scrapy.Request(next_page_url)
 
     def parse_page(self, response):
         news = response.meta["news"]
