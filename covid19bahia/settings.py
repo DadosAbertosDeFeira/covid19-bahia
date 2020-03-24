@@ -9,3 +9,7 @@ ROBOTSTXT_OBEY = True
 
 HTTPCACHE_ENABLED = True
 HTTPCACHE_EXPIRATION_SECS = 8600
+
+ITEM_PIPELINES = {
+    'covid19bahia.pipelines.DatabaseWriterPipeline': 100,
+}
