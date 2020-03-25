@@ -11,19 +11,27 @@ class NewsSpider(scrapy.Spider):
         urls = response.css("div.detalhes-noticias h2 a::attr(href)").extract()
         dates = response.css("div.detalhes-noticias p.data-hora ::text").extract()
 
+        continue_crawling = True
         for index, url in enumerate(urls):
             date_obj = datetime.strptime(dates[index], "%d/%m/%Y %H:%M")
-            news = {
-                "date": date_obj.strftime("%Y-%m-%d"),
-                "url": urls[index],
-                "title": titles[index],
-                "crawled_at": datetime.now(),
-            }
-            yield response.follow(url, self.parse_page, meta={"news": news})
 
-        next_page_url = response.css("li a.next::attr(href)").extract_first()
-        if next_page_url:
-            yield scrapy.Request(next_page_url)
+            # essa abordagem assume que as notícias são sempre ordenadas
+            if self.last_news_date is None or date_obj > self.last_news_date:
+                news = {
+                    "date": date_obj,
+                    "url": urls[index],
+                    "title": titles[index],
+                    "crawled_at": datetime.now(),
+                }
+                yield response.follow(url, self.parse_page, meta={"news": news})
+            else:
+                continue_crawling = False
+                break
+
+        if continue_crawling:
+            next_page_url = response.css("li a.next::attr(href)").extract_first()
+            if next_page_url:
+                yield scrapy.Request(next_page_url)
 
     def parse_page(self, response):
         news = response.meta["news"]

@@ -1,3 +1,4 @@
+from datetime import datetime
 import sqlite3
 
 
@@ -13,6 +14,8 @@ class DatabaseWriterPipeline(object):
         """
         ).fetchone()
 
+        spider.last_news_date = None
+
         if not table_exists:
             self.cursor.execute(
                 """CREATE TABLE news
@@ -26,6 +29,15 @@ class DatabaseWriterPipeline(object):
                 );
             """
             )
+        else:
+            date = self.cursor.execute(
+                """
+                SELECT date FROM news ORDER BY date DESC LIMIT 1;
+            """
+            ).fetchone()
+            if date:
+                date_obj = datetime.strptime(date[0], "%Y-%m-%d %H:%M:%S")
+                spider.last_news_date = date_obj
 
     def close_spider(self, spider):
         self.db.close()
@@ -37,6 +49,7 @@ class DatabaseWriterPipeline(object):
     def save_item(self, item):
         self.cursor.execute("SELECT * FROM news WHERE url=?", (item["url"],))
         found = self.cursor.fetchone()
+
         if not found:
             self.cursor.execute(
                 f"""
