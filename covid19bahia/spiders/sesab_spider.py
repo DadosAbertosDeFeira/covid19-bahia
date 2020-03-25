@@ -1,38 +1,48 @@
+from datetime import datetime
 import scrapy
 
 
 class NewsSpider(scrapy.Spider):
     name = "sesab_news"
-    start_urls = [
-        f"http://www.saude.ba.gov.br/noticias/page/{page}/"
-        for page in range(10)
-    ]
+    start_urls = ["http://www.saude.ba.gov.br/noticias"]
 
     def parse(self, response):
-        titles = response.css('div.detalhes-noticias h2 ::text').extract()
-        urls = response.css('div.detalhes-noticias h2 a::attr(href)').extract()
-        published_at = response.css('div.detalhes-noticias p.data-hora ::text').extract()
-        categories = response.css('div.detalhes-noticias p.categoria a::text').extract()
-        categories_url = response.css('div.detalhes-noticias p.categoria a::attr(href)').extract()
+        titles = response.css("div.detalhes-noticias h2 ::text").extract()
+        urls = response.css("div.detalhes-noticias h2 a::attr(href)").extract()
+        dates = response.css("div.detalhes-noticias p.data-hora ::text").extract()
 
+        continue_crawling = True
         for index, url in enumerate(urls):
-            news = {
-                "title": titles[index],
-                "url": urls[index],
-                "published_at": published_at[index],
-                "category": categories[index],
-                "category_url": categories_url[index],
-            }
-            yield response.follow(url, self.parse_page, meta={"news": news})
+            date_obj = datetime.strptime(dates[index], "%d/%m/%Y %H:%M")
+
+            # essa abordagem assume que as notícias são sempre ordenadas
+            if self.last_news_date is None or date_obj > self.last_news_date:
+                news = {
+                    "date": date_obj,
+                    "url": urls[index],
+                    "title": titles[index],
+                    "crawled_at": datetime.now(),
+                }
+                yield response.follow(url, self.parse_page, meta={"news": news})
+            else:
+                continue_crawling = False
+                break
+
+        if continue_crawling:
+            next_page_url = response.css("li a.next::attr(href)").extract_first()
+            if next_page_url:
+                yield scrapy.Request(next_page_url)
 
     def parse_page(self, response):
         news = response.meta["news"]
-        key_words = ["covid19", "covid-19", "coronavirus"]
+        key_words = ["covid19", "covid-19", "coronavirus", "coronavírus"]
 
-        text = response.css('div#conteudo div.container p ::text').extract()
-        text = ' '.join(text)
+        text = response.css("div#conteudo div.container p ::text").extract()
+        text = " ".join(text)
         news["text"] = text
         for key_word in key_words:
-            if key_word in news["title"].lower():
+            key_word_in_title = key_word in news["title"].lower()
+            key_word_in_text = key_word in news["text"].lower()
+            if key_word_in_title or key_word_in_text:
                 yield news
                 break
