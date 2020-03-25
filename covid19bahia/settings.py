@@ -10,8 +10,9 @@ USER_AGENT = "covid19bahia (+http://www.dadosabertosdefeira.com.br)"
 
 ROBOTSTXT_OBEY = True
 
-HTTPCACHE_ENABLED = True
-HTTPCACHE_EXPIRATION_SECS = 8600 if os.getenv("DEV_ENVIRONMENT") else None
+if os.getenv("DEV_ENVIRONMENT"):
+    HTTPCACHE_ENABLED = True
+    HTTPCACHE_EXPIRATION_SECS = 8600
 
 ITEM_PIPELINES = {
     "covid19bahia.pipelines.DatabaseWriterPipeline": 100,
