@@ -17,11 +17,12 @@ class DatabaseWriterPipeline(object):
             self.cursor.execute(
                 """CREATE TABLE news
                 (
-                    date text,
-                    url text,
-                    title text,
-                    crawled_at,
-                    text text
+                    date TEXT,
+                    url TEXT,
+                    title TEXT,
+                    crawled_at TEXT,
+                    text TEXT,
+                    is_synced INTEGER
                 );
             """
             )
@@ -30,13 +31,24 @@ class DatabaseWriterPipeline(object):
         self.db.close()
 
     def process_item(self, item, spider):
-        self.cursor.execute(
-            f"""
-            INSERT INTO news
-            VALUES (
-                \'{item['date']}\', \'{item['url']}\', 
-                \'{item['title']}\', \'{item['crawled_at']}\', \'{item['text']}\');
-        """
-        )
-        self.db.commit()
+        self.save_item(item)
         return item
+
+    def save_item(self, item):
+        self.cursor.execute("SELECT * FROM news WHERE url=?", (item["url"],))
+        found = self.cursor.fetchone()
+        if not found:
+            self.cursor.execute(
+                f"""
+                INSERT INTO news
+                VALUES (
+                    \'{item['date']}\',
+                    \'{item['url']}\',
+                    \'{item['title']}\',
+                    \'{item['crawled_at']}\',
+                    \'{item['text']}\',
+                    0
+                );
+            """
+            )
+        self.db.commit()
