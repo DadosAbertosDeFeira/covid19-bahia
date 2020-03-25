@@ -24,3 +24,6 @@ scrapy crawl sesab_news -o noticias-sesab.csv
 
 Os itens coletados serão salvos em um banco `sqlite` (`sesab-news.db`)
 na pasta do projeto.
+
+Para habilitar um cache de 24 horas e evitar muitos acessos ao site,
+crie configure a variável de ambiente `DEV_ENVIRONMENT=True`.
