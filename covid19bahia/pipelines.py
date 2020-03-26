@@ -116,9 +116,9 @@ class SyncItemsToGoogleSheetsPipeline(object):
         connection = psycopg2.connect(os.getenv("DATABASE_URL"))
         cursor = connection.cursor()
 
-        cursor.execute(
-            """
-            SELECT id, date, url, title, crawled_at, text FROM news WHERE is_synced=false;
+        cursor.execute("""
+            SELECT id, date, url, title, crawled_at, text
+            FROM news WHERE is_synced=false ORDER BY date;
         """
         )
         not_synced_news = cursor.fetchall()
@@ -132,8 +132,9 @@ class SyncItemsToGoogleSheetsPipeline(object):
             text = not_synced[5]
 
             try:
+                # False significa 'não verificado'
                 result = self.news_sheet.append_row(
-                    [date, url, title, crawled_at, text]
+                    [date, url, title, crawled_at, text, False]
                 )
                 if result["updates"]["updatedRows"] > 0:
                     cursor.execute(
