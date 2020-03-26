@@ -22,8 +22,13 @@ Para exportar os resultados para um CSV:
 scrapy crawl sesab_news -o noticias-sesab.csv
 ```
 
-Os itens coletados serão salvos em um banco `sqlite` (`sesab-news.db`)
-na pasta do projeto.
+Os itens coletados serão salvos em um banco Postgres.
+
+Você deve criar um banco chamado `sesab`. Para habilitar
+a conexão com o banco, configure uma variável de ambiente
+chamada `DATABASE_URL`.
 
 Para habilitar um cache de 24 horas e evitar muitos acessos ao site,
 crie configure a variável de ambiente `DEV_ENVIRONMENT=True`.
+
+Veja um exemplo de configuração no `.env.sample`.
