@@ -1,7 +1,15 @@
-from datetime import datetime
+import json
+import logging
 import os
-import psycopg2
 import sqlite3
+from datetime import datetime
+
+import gspread
+import psycopg2
+from oauth2client.service_account import ServiceAccountCredentials
+
+
+logger = logging.getLogger(__name__)
 
 
 class DatabaseWriterPipeline(object):
@@ -86,3 +94,57 @@ class DatabaseWriterPipeline(object):
                 ),
             )
             self.connection.commit()
+
+
+class SyncItemsToGoogleSheetsPipeline(object):
+    def __init__(self, *args, **kwargs):
+        scope = [
+            "https://spreadsheets.google.com/feeds",
+            "https://www.googleapis.com/auth/drive",
+        ]
+        keyfile_dict = json.loads(os.getenv("GOOGLE_CREDENTIALS"))
+        credentials = ServiceAccountCredentials.from_json_keyfile_dict(
+            keyfile_dict, scope
+        )
+
+        gc = gspread.authorize(credentials)
+        self.news_sheet = gc.open_by_key(os.getenv("GOOGLE_SHEET_ID")).sheet1
+
+        super().__init__(*args, **kwargs)
+
+    def close_spider(self, spider):
+        connection = psycopg2.connect(os.getenv("DATABASE_URL"))
+        cursor = connection.cursor()
+
+        cursor.execute("""
+            SELECT id, date, url, title, crawled_at, text
+            FROM news WHERE is_synced=false ORDER BY date;
+        """
+        )
+        not_synced_news = cursor.fetchall()
+
+        for not_synced in not_synced_news:
+            _id = not_synced[0]
+            date = not_synced[1].strftime("%Y-%m-%d")  # formato do brasil.io
+            url = not_synced[2]
+            title = not_synced[3]
+            crawled_at = str(not_synced[4])
+            text = not_synced[5]
+
+            try:
+                # False significa 'não verificado'
+                result = self.news_sheet.append_row(
+                    [date, url, title, crawled_at, text, False]
+                )
+                if result["updates"]["updatedRows"] > 0:
+                    cursor.execute(
+                        """
+                        UPDATE news SET is_synced = true WHERE id = %s;
+                    """,
+                        (_id,),
+                    )
+                    connection.commit()
+                else:
+                    logger.warning("Não pôde atualizar o banco: %s", result)
+            except Exception as e:
+                logger.error("Não pôde sincronizar: %s %s", e, result)

@@ -16,4 +16,5 @@ if os.getenv("DEV_ENVIRONMENT"):
 
 ITEM_PIPELINES = {
     "covid19bahia.pipelines.DatabaseWriterPipeline": 100,
+    "covid19bahia.pipelines.SyncItemsToGoogleSheetsPipeline": 500,
 }
