@@ -41,11 +41,9 @@ class DatabaseWriterPipeline(object):
                 SELECT date FROM news ORDER BY date DESC LIMIT 1;
             """
             )
-            date = self.cursor.fetchone()[0]
-            print(date)
-            if date:
-                date_obj = datetime.strptime(date[0], "%Y-%m-%d %H:%M:%S")
-                spider.last_news_date = date_obj
+            date_obj = self.cursor.fetchone()
+            if date_obj:
+                spider.last_news_date = date_obj[0]
 
     def close_spider(self, spider):
         self.cursor.close()
@@ -56,7 +54,7 @@ class DatabaseWriterPipeline(object):
         return item
 
     def save_item(self, item):
-        self.cursor.execute(f"SELECT id FROM news WHERE url='{item['url']}'")
+        self.cursor.execute("SELECT id FROM news WHERE url=%s", (item["url"],))
         found = self.cursor.fetchone()
 
         if not found:
